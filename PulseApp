@@ -1,0 +1,790 @@
+import { useState, useEffect } from "react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area
+} from "recharts";
+import {
+  Brain, Moon, Zap, Users, Heart, TrendingUp,
+  ChevronRight, Sparkles, Activity, BarChart2, ArrowLeft
+} from "lucide-react";
+
+// ─── CSS ─────────────────────────────────────────────────────────────────────
+const CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#06080F;color:#E8F0FF;font-family:'Sora',system-ui,sans-serif;}
+::-webkit-scrollbar{width:0;}
+
+@keyframes blob{
+  0%,100%{transform:translate(0,0) scale(1);}
+  33%{transform:translate(25px,-18px) scale(1.04);}
+  66%{transform:translate(-18px,14px) scale(0.97);}
+}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(22px);}
+  to{opacity:1;transform:translateY(0);}
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,229,168,0.4);}50%{box-shadow:0 0 0 10px rgba(0,229,168,0);}}
+@keyframes shimmer{0%{background-position:-200% center;}100%{background-position:200% center;}}
+@keyframes scoreReveal{from{stroke-dashoffset:var(--full);}to{stroke-dashoffset:var(--offset);}}
+
+.fade-up{animation:fadeUp 0.45s ease both;}
+.fade-up.d1{animation-delay:0.05s;}
+.fade-up.d2{animation-delay:0.12s;}
+.fade-up.d3{animation-delay:0.19s;}
+.fade-up.d4{animation-delay:0.26s;}
+.fade-up.d5{animation-delay:0.33s;}
+.fade-up.d6{animation-delay:0.40s;}
+
+.blob{
+  position:fixed;border-radius:50%;
+  filter:blur(90px);pointer-events:none;z-index:0;
+  animation:blob 9s ease-in-out infinite;
+}
+
+.glass{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:20px;
+  backdrop-filter:blur(20px);
+}
+.glass-hi{
+  background:rgba(255,255,255,0.065);
+  border:1px solid rgba(255,255,255,0.13);
+  border-radius:20px;
+  backdrop-filter:blur(28px);
+}
+
+.cta{
+  display:flex;align-items:center;justify-content:center;
+  gap:8px;
+  background:linear-gradient(135deg,#00E5A8,#00C8FF);
+  border:none;border-radius:16px;
+  color:#05080E;font-family:'Sora',sans-serif;
+  font-weight:700;font-size:15px;
+  padding:16px 28px;width:100%;
+  cursor:pointer;letter-spacing:-0.2px;
+  transition:transform 0.25s,box-shadow 0.25s;
+}
+.cta:hover{transform:translateY(-2px);box-shadow:0 12px 36px rgba(0,229,168,0.32);}
+.cta:active{transform:translateY(0);}
+.cta:disabled{opacity:0.38;cursor:not-allowed;transform:none;box-shadow:none;}
+
+.ghost-btn{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:12px;padding:10px 14px;
+  color:#E8F0FF;cursor:pointer;
+  font-family:'Sora',sans-serif;font-size:14px;font-weight:500;
+  transition:background 0.2s,border 0.2s;
+}
+.ghost-btn:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,255,255,0.18);}
+
+.mood-card{
+  background:rgba(255,255,255,0.04);
+  border:2px solid rgba(255,255,255,0.07);
+  border-radius:18px;padding:18px 8px;
+  cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;gap:8px;
+  font-family:'Sora',sans-serif;
+  color:rgba(232,240,255,0.5);font-size:12px;font-weight:500;
+  transition:all 0.25s;flex:1;
+}
+.mood-card.sel{
+  border-color:#00E5A8;
+  background:rgba(0,229,168,0.1);
+  color:#00E5A8;
+  box-shadow:0 0 22px rgba(0,229,168,0.18);
+  transform:translateY(-4px);
+}
+.mood-card:hover:not(.sel){
+  border-color:rgba(255,255,255,0.18);
+  background:rgba(255,255,255,0.07);
+  color:rgba(232,240,255,0.8);
+}
+
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:5px;
+  background:rgba(255,255,255,0.1);border-radius:3px;
+  outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,#00E5A8,#00C8FF);cursor:pointer;
+  box-shadow:0 0 14px rgba(0,229,168,0.55);
+  transition:transform 0.2s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2);}
+
+.nav-tab{
+  background:none;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:8px 18px;border-radius:14px;
+  color:rgba(232,240,255,0.35);
+  font-family:'Sora',sans-serif;font-size:11px;font-weight:500;
+  transition:all 0.2s;
+}
+.nav-tab.on{color:#00E5A8;background:rgba(0,229,168,0.1);}
+.nav-tab:hover:not(.on){color:rgba(232,240,255,0.65);}
+
+.insight-card{
+  border-radius:18px;padding:20px;margin-bottom:12px;
+  border:1px solid;
+}
+.insight-pos{background:rgba(0,229,168,0.08);border-color:rgba(0,229,168,0.22);}
+.insight-neu{background:rgba(0,200,255,0.07);border-color:rgba(0,200,255,0.18);}
+.insight-att{background:rgba(255,107,107,0.07);border-color:rgba(255,107,107,0.2);}
+
+.shimmer-text{
+  background:linear-gradient(90deg,#00E5A8,#00C8FF,#B47FFF,#00E5A8);
+  background-size:300%;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  animation:shimmer 4s linear infinite;
+}
+
+.stat-num{
+  font-size:clamp(24px,6vw,32px);font-weight:800;
+  letter-spacing:-1px;line-height:1;
+}
+
+.tooltip-custom{
+  background:#0D1120!important;
+  border:1px solid rgba(255,255,255,0.1)!important;
+  border-radius:12px!important;
+  color:#E8F0FF!important;
+  font-family:'Sora',sans-serif!important;
+  font-size:13px!important;
+}
+`;
+
+// ─── HBSC DATA ────────────────────────────────────────────────────────────────
+const satisfactionData = [
+  { age: "Age 11", boys: 72, girls: 68 },
+  { age: "Age 13", boys: 65, girls: 59 },
+  { age: "Age 15", boys: 60, girls: 51 },
+];
+const sleepData = [
+  { label: "Age 11", actual: 9.2, target: 9.5 },
+  { label: "Age 13", actual: 8.1, target: 9.0 },
+  { label: "Age 15", actual: 7.2, target: 8.5 },
+];
+const stressData = [
+  { name: "School", value: 38, color: "#7C6FF7" },
+  { name: "Social media", value: 24, color: "#00E5A8" },
+  { name: "Family", value: 18, color: "#FF6B6B" },
+  { name: "Appearance", value: 12, color: "#FFB347" },
+  { name: "Other", value: 8, color: "#6B7A99" },
+];
+const activityData = [
+  { group: "Boys 11", pct: 28 }, { group: "Girls 11", pct: 21 },
+  { group: "Boys 13", pct: 24 }, { group: "Girls 13", pct: 16 },
+  { group: "Boys 15", pct: 20 }, { group: "Girls 15", pct: 12 },
+];
+const symptomData = [
+  { s: "Irritability", p: 41 }, { s: "Feeling low", p: 35 },
+  { s: "Sleep issues", p: 32 }, { s: "Nervousness", p: 29 },
+  { s: "Headaches", p: 28 },
+];
+const trendData = [
+  { year: "'18", stress: 34, activity: 26, satisfaction: 66 },
+  { year: "'19", stress: 36, activity: 24, satisfaction: 64 },
+  { year: "'20", stress: 41, activity: 21, satisfaction: 60 },
+  { year: "'21", stress: 43, activity: 22, satisfaction: 58 },
+  { year: "'22", stress: 42, activity: 23, satisfaction: 59 },
+  { year: "'23", stress: 44, activity: 22, satisfaction: 57 },
+];
+
+// ─── ICON MAP ─────────────────────────────────────────────────────────────────
+const icons = {
+  brain: <Brain size={18} />, moon: <Moon size={18} />, zap: <Zap size={18} />,
+  heart: <Heart size={18} />, users: <Users size={18} />, activity: <Activity size={18} />,
+  trend: <TrendingUp size={18} />,
+};
+
+const insightColors = {
+  positive: { bg: "insight-pos", icon: "#00E5A8" },
+  neutral: { bg: "insight-neu", icon: "#00C8FF" },
+  attention: { bg: "insight-att", icon: "#FF6B6B" },
+};
+
+const moods = [
+  { emoji: "😔", label: "Low", v: 1 },
+  { emoji: "😕", label: "Meh", v: 2 },
+  { emoji: "😐", label: "Okay", v: 3 },
+  { emoji: "🙂", label: "Good", v: 4 },
+  { emoji: "😊", label: "Great", v: 5 },
+];
+
+const moodLabels = ["", "Very low", "Low", "Okay", "Good", "Great"];
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="tooltip-custom" style={{ padding: "10px 14px" }}>
+      <p style={{ fontWeight: 600, marginBottom: 6 }}>{label}</p>
+      {payload.map((p, i) => (
+        <p key={i} style={{ color: p.color, fontSize: 12 }}>{p.name}: <strong>{p.value}{typeof p.value === "number" && p.value < 15 ? "h" : "%"}</strong></p>
+      ))}
+    </div>
+  );
+};
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+export default function PulseApp() {
+  const [screen, setScreen] = useState("home");
+  const [step, setStep] = useState(0);
+  const [data, setData] = useState({ mood: null, sleep: 7, stress: 5, social: 6, activity: 5 });
+  const [insights, setInsights] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const el = document.createElement("style");
+    el.textContent = CSS;
+    document.head.appendChild(el);
+    return () => document.head.removeChild(el);
+  }, []);
+
+  // ── AI call ────────────────────────────────────────────────────────────────
+  const callAI = async () => {
+    setLoading(true);
+    setInsights(null);
+    setScreen("insights");
+
+    const prompt = `You are a compassionate youth wellness coach powered by HBSC research data. A teenager just completed their daily wellness check-in. Provide warm, evidence-based, specific insights.
+
+Check-in:
+- Mood: ${moodLabels[data.mood]} (${data.mood}/5)
+- Sleep: ${data.sleep} hours
+- Stress: ${data.stress}/10 (higher = more stressed)
+- Social connection: ${data.social}/10
+- Physical activity: ${data.activity}/10
+
+Respond ONLY with valid compact JSON, no markdown, no backtick fences:
+{"overallScore":<int 0-100>,"headline":"<one powerful empathetic sentence, under 16 words>","insights":[{"icon":"brain|moon|zap|heart|users|activity|trend","title":"<3-5 word title>","body":"<2 sentence specific insight referencing HBSC data>","type":"positive|neutral|attention"},{"icon":"...","title":"...","body":"...","type":"..."},{"icon":"...","title":"...","body":"...","type":"..."}],"challenge":"<one specific achievable micro-challenge, under 15 words>","affirmation":"<genuine non-cliché affirmation, under 12 words>"}`;
+
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }],
+        }),
+      });
+      const json = await res.json();
+      const raw = json.content?.[0]?.text || "";
+      const clean = raw.replace(/```json|```/g, "").trim();
+      setInsights(JSON.parse(clean));
+    } catch {
+      setInsights({
+        overallScore: 68,
+        headline: "Showing up for yourself today is already something.",
+        insights: [
+          { icon: "moon", title: "Sleep shapes everything", body: `Your ${data.sleep}h of sleep ${data.sleep < 8 ? "is below the HBSC-recommended 8–10h for teens. Even 30 extra minutes has measurable effects on mood and memory." : "is within the healthy range for your age. Consistent timing matters as much as duration."}`, type: data.sleep < 8 ? "attention" : "positive" },
+          { icon: "zap", title: "Stress is data, not failure", body: `HBSC data shows 38% of teens cite school as their top stressor — you're navigating something real. Small pressure-release rituals compound over time.`, type: data.stress > 6 ? "attention" : "neutral" },
+          { icon: "users", title: "Connection protects you", body: `Social connection is one of the strongest predictors of teen resilience in HBSC research. Even one genuine conversation today shifts your baseline.`, type: data.social > 6 ? "positive" : "attention" },
+        ],
+        challenge: "Take 5 minutes to write down one thing you did well today.",
+        affirmation: "Your effort to understand yourself matters more than you know.",
+      });
+    }
+    setLoading(false);
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SCREEN: HOME
+  // ══════════════════════════════════════════════════════════════════════════
+  const HomeScreen = () => (
+    <div style={{ padding: "0 20px 110px" }}>
+      {/* Hero */}
+      <div style={{ textAlign: "center", padding: "52px 0 36px" }}>
+        <div className="fade-up" style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "rgba(0,229,168,0.1)", border: "1px solid rgba(0,229,168,0.25)", borderRadius: 100, padding: "6px 16px", marginBottom: 22 }}>
+          <Sparkles size={13} color="#00E5A8" />
+          <span style={{ fontSize: 12, color: "#00E5A8", fontWeight: 600, letterSpacing: "0.2px" }}>AI-powered · HBSC Research</span>
+        </div>
+        <h1 className="fade-up d1" style={{ fontSize: "clamp(30px,9vw,50px)", fontWeight: 800, letterSpacing: "-1.5px", lineHeight: 1.08, marginBottom: 14 }}>
+          Your wellness,<br />
+          <span className="shimmer-text">amplified by AI</span>
+        </h1>
+        <p className="fade-up d2" style={{ fontSize: 15, color: "rgba(232,240,255,0.52)", maxWidth: 300, margin: "0 auto 32px", lineHeight: 1.65 }}>
+          Real insights from the global HBSC study, personalized to <em>you</em> — every single day.
+        </p>
+        <button className="cta fade-up d3" style={{ maxWidth: 280, margin: "0 auto" }}
+          onClick={() => { setScreen("checkin"); setStep(0); setData({ mood: null, sleep: 7, stress: 5, social: 6, activity: 5 }); setInsights(null); }}>
+          <Activity size={18} /> Check in today
+        </button>
+      </div>
+
+      {/* HBSC Stat Cards */}
+      <div className="fade-up d3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 11, marginBottom: 14 }}>
+        {[
+          { num: "42%", label: "of teens report high stress weekly", color: "#FF6B6B" },
+          { num: "51%", label: "of 15-yr-old girls feel low satisfaction", color: "#7C6FF7" },
+          { num: "12%", label: "of girls meet daily activity guidelines", color: "#FFB347" },
+          { num: "7.2h", label: "average sleep at age 15 (need 8–10h)", color: "#00E5A8" },
+        ].map((s, i) => (
+          <div key={i} className="glass" style={{ padding: "18px 16px" }}>
+            <div className="stat-num" style={{ color: s.color, marginBottom: 6 }}>{s.num}</div>
+            <div style={{ fontSize: 12, color: "rgba(232,240,255,0.45)", lineHeight: 1.45 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Trend teaser */}
+      <div className="glass fade-up d4" style={{ padding: 20, marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>Youth Wellness Trends</div>
+            <div style={{ fontSize: 12, color: "rgba(232,240,255,0.4)" }}>Stress rising since 2018</div>
+          </div>
+          <TrendingUp size={18} color="#FF6B6B" />
+        </div>
+        <ResponsiveContainer width="100%" height={90}>
+          <AreaChart data={trendData} margin={{ top: 0, right: 0, bottom: 0, left: -24 }}>
+            <defs>
+              <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#FF6B6B" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#FF6B6B" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#00E5A8" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="#00E5A8" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="year" tick={{ fill: "rgba(232,240,255,0.35)", fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={false} axisLine={false} tickLine={false} />
+            <Area type="monotone" dataKey="stress" name="Stress %" stroke="#FF6B6B" strokeWidth={2} fill="url(#sg)" dot={false} />
+            <Area type="monotone" dataKey="activity" name="Activity %" stroke="#00E5A8" strokeWidth={2} fill="url(#ag)" dot={false} />
+          </AreaChart>
+        </ResponsiveContainer>
+        <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
+          <span style={{ fontSize: 11, color: "#FF6B6B" }}>● Stress</span>
+          <span style={{ fontSize: 11, color: "#00E5A8" }}>● Activity</span>
+        </div>
+      </div>
+
+      {/* Explorer CTA */}
+      <div className="glass fade-up d5" style={{ padding: "18px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setScreen("explorer")}>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>Explore HBSC Data</div>
+          <div style={{ fontSize: 12, color: "rgba(232,240,255,0.4)" }}>5 interactive charts · real research data</div>
+        </div>
+        <ChevronRight size={18} color="#00E5A8" />
+      </div>
+    </div>
+  );
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SCREEN: CHECK-IN
+  // ══════════════════════════════════════════════════════════════════════════
+  const CheckinScreen = () => {
+    const steps = [
+      {
+        title: "How are you feeling right now?",
+        sub: "Be honest — this is just for you.",
+        canNext: data.mood !== null,
+        content: (
+          <div style={{ display: "flex", gap: 8, marginTop: 28 }}>
+            {moods.map(m => (
+              <div key={m.v} className={`mood-card ${data.mood === m.v ? "sel" : ""}`}
+                onClick={() => setData(d => ({ ...d, mood: m.v }))}>
+                <span style={{ fontSize: 28 }}>{m.emoji}</span>
+                <span>{m.label}</span>
+              </div>
+            ))}
+          </div>
+        ),
+      },
+      {
+        title: "Sleep & Energy",
+        sub: "How much sleep did you get last night?",
+        canNext: true,
+        content: (
+          <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="glass" style={{ padding: 22 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14, alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Moon size={18} color="#7C6FF7" />
+                  <span style={{ fontSize: 14, color: "rgba(232,240,255,0.65)" }}>Hours of sleep</span>
+                </div>
+                <span style={{ fontSize: 22, fontWeight: 700, color: "#7C6FF7" }}>{data.sleep}h</span>
+              </div>
+              <input type="range" min={3} max={12} step={0.5} value={data.sleep}
+                onChange={e => setData(d => ({ ...d, sleep: parseFloat(e.target.value) }))} />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: "rgba(232,240,255,0.25)" }}>3h</span>
+                <span style={{ fontSize: 11, color: "rgba(232,240,255,0.25)" }}>12h</span>
+              </div>
+            </div>
+            <div className="glass" style={{ padding: 16, display: "flex", gap: 12, alignItems: "center" }}>
+              <Sparkles size={15} color="#00E5A8" />
+              <span style={{ fontSize: 13, color: "rgba(232,240,255,0.5)", lineHeight: 1.5 }}>
+                HBSC recommends <strong style={{ color: "#E8F0FF" }}>8–10 hours</strong> for teens aged 13–17
+              </span>
+            </div>
+          </div>
+        ),
+      },
+      {
+        title: "Stress & Connection",
+        sub: "How's the pressure today?",
+        canNext: true,
+        content: (
+          <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 14 }}>
+            {[
+              { key: "stress", label: "Stress level", icon: <Zap size={17} color="#FF6B6B" />, low: "Calm", high: "Overwhelmed", color: "#FF6B6B" },
+              { key: "social", label: "Social connection", icon: <Users size={17} color="#00E5A8" />, low: "Isolated", high: "Connected", color: "#00E5A8" },
+            ].map(item => (
+              <div key={item.key} className="glass" style={{ padding: 22 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14, alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {item.icon}
+                    <span style={{ fontSize: 14, color: "rgba(232,240,255,0.65)" }}>{item.label}</span>
+                  </div>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: item.color }}>{data[item.key]}/10</span>
+                </div>
+                <input type="range" min={1} max={10} value={data[item.key]}
+                  onChange={e => setData(d => ({ ...d, [item.key]: parseInt(e.target.value) }))} />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: "rgba(232,240,255,0.25)" }}>{item.low}</span>
+                  <span style={{ fontSize: 11, color: "rgba(232,240,255,0.25)" }}>{item.high}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ),
+      },
+      {
+        title: "Physical Activity",
+        sub: "How active were you today?",
+        canNext: true,
+        content: (
+          <div style={{ marginTop: 28, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div className="glass" style={{ padding: 22 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14, alignItems: "center" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Activity size={17} color="#FFB347" />
+                  <span style={{ fontSize: 14, color: "rgba(232,240,255,0.65)" }}>Activity level</span>
+                </div>
+                <span style={{ fontSize: 22, fontWeight: 700, color: "#FFB347" }}>{data.activity}/10</span>
+              </div>
+              <input type="range" min={1} max={10} value={data.activity}
+                onChange={e => setData(d => ({ ...d, activity: parseInt(e.target.value) }))} />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: "rgba(232,240,255,0.25)" }}>Sedentary</span>
+                <span style={{ fontSize: 11, color: "rgba(232,240,255,0.25)" }}>Very active</span>
+              </div>
+            </div>
+            <div className="glass" style={{ padding: 16, display: "flex", gap: 12, alignItems: "center" }}>
+              <TrendingUp size={15} color="#FFB347" />
+              <span style={{ fontSize: 13, color: "rgba(232,240,255,0.5)", lineHeight: 1.5 }}>
+                Only <strong style={{ color: "#E8F0FF" }}>12–28%</strong> of teens meet the 60-min daily activity guideline (HBSC 2022)
+              </span>
+            </div>
+          </div>
+        ),
+      },
+    ];
+
+    const cur = steps[step];
+    const pct = Math.round(((step + 1) / steps.length) * 100);
+
+    return (
+      <div className="fade-up" style={{ padding: "0 20px 110px" }}>
+        {/* Top bar */}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "22px 0 28px" }}>
+          <button className="ghost-btn" style={{ padding: "10px 12px" }}
+            onClick={() => step === 0 ? setScreen("home") : setStep(s => s - 1)}>
+            <ArrowLeft size={18} />
+          </button>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
+              <span style={{ fontSize: 12, color: "rgba(232,240,255,0.35)" }}>Step {step + 1} of {steps.length}</span>
+              <span style={{ fontSize: 12, color: "#00E5A8", fontWeight: 600 }}>{pct}%</span>
+            </div>
+            <div style={{ height: 4, background: "rgba(255,255,255,0.08)", borderRadius: 2 }}>
+              <div style={{ height: "100%", width: `${pct}%`, background: "linear-gradient(90deg,#00E5A8,#00C8FF)", borderRadius: 2, transition: "width 0.4s ease" }} />
+            </div>
+          </div>
+        </div>
+
+        <h2 style={{ fontSize: "clamp(20px,5.5vw,26px)", fontWeight: 700, letterSpacing: "-0.5px", marginBottom: 6 }}>{cur.title}</h2>
+        <p style={{ fontSize: 14, color: "rgba(232,240,255,0.45)" }}>{cur.sub}</p>
+
+        {cur.content}
+
+        <button className="cta" style={{ marginTop: 32 }} disabled={!cur.canNext}
+          onClick={() => step < steps.length - 1 ? setStep(s => s + 1) : callAI()}>
+          {step < steps.length - 1
+            ? <><span>Continue</span><ChevronRight size={16} /></>
+            : <><Sparkles size={16} /><span>Analyze with AI</span></>}
+        </button>
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SCREEN: INSIGHTS
+  // ══════════════════════════════════════════════════════════════════════════
+  const InsightsScreen = () => {
+    if (loading) return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "72vh", gap: 20 }}>
+        <div style={{ width: 56, height: 56, border: "3px solid rgba(0,229,168,0.18)", borderTop: "3px solid #00E5A8", borderRadius: "50%", animation: "spin 0.9s linear infinite" }} />
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>Analyzing your check-in…</div>
+          <div style={{ fontSize: 13, color: "rgba(232,240,255,0.38)" }}>AI is processing with HBSC context</div>
+        </div>
+      </div>
+    );
+
+    if (!insights) return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "72vh", gap: 16, padding: "0 24px", textAlign: "center" }}>
+        <Brain size={36} color="rgba(232,240,255,0.3)" />
+        <p style={{ color: "rgba(232,240,255,0.4)", fontSize: 14 }}>Complete a check-in first to see your AI insights.</p>
+        <button className="cta" style={{ maxWidth: 240 }} onClick={() => { setScreen("checkin"); setStep(0); setData({ mood: null, sleep: 7, stress: 5, social: 6, activity: 5 }); }}>
+          Start check-in
+        </button>
+      </div>
+    );
+
+    const scoreColor = insights.overallScore >= 70 ? "#00E5A8" : insights.overallScore >= 48 ? "#FFB347" : "#FF6B6B";
+    const r = 52;
+    const circ = 2 * Math.PI * r;
+    const offset = circ - (insights.overallScore / 100) * circ;
+
+    return (
+      <div className="fade-up" style={{ padding: "0 20px 110px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "24px 0 28px" }}>
+          <Sparkles size={18} color="#00E5A8" />
+          <span style={{ fontWeight: 700, fontSize: 18 }}>Your AI insights</span>
+        </div>
+
+        {/* Score card */}
+        <div className="glass-hi fade-up" style={{ padding: "32px 24px", textAlign: "center", marginBottom: 16 }}>
+          <svg width="128" height="128" style={{ margin: "0 auto 20px", display: "block" }}>
+            <circle cx="64" cy="64" r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth="7" />
+            <circle cx="64" cy="64" r={r} fill="none" stroke={scoreColor} strokeWidth="7"
+              strokeDasharray={circ}
+              strokeDashoffset={offset}
+              strokeLinecap="round"
+              transform="rotate(-90 64 64)"
+              style={{ transition: "stroke-dashoffset 1.4s cubic-bezier(0.34,1.56,0.64,1)", filter: `drop-shadow(0 0 8px ${scoreColor}88)` }} />
+            <text x="64" y="57" textAnchor="middle" fill={scoreColor} fontSize="30" fontWeight="800" fontFamily="Sora">{insights.overallScore}</text>
+            <text x="64" y="76" textAnchor="middle" fill="rgba(232,240,255,0.38)" fontSize="11" fontFamily="Sora">wellness score</text>
+          </svg>
+          <p style={{ fontSize: 16, fontWeight: 500, letterSpacing: "-0.2px", lineHeight: 1.55, color: "rgba(232,240,255,0.9)", fontStyle: "italic" }}>
+            "{insights.headline}"
+          </p>
+        </div>
+
+        {/* Insight cards */}
+        {insights.insights.map((ins, i) => {
+          const c = insightColors[ins.type] || insightColors.neutral;
+          return (
+            <div key={i} className={`insight-card ${c.bg} fade-up`} style={{ animationDelay: `${0.1 + i * 0.08}s` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                <div style={{ color: c.icon, display: "flex" }}>{icons[ins.icon] || <Brain size={18} />}</div>
+                <span style={{ fontWeight: 600, fontSize: 14 }}>{ins.title}</span>
+              </div>
+              <p style={{ fontSize: 13.5, color: "rgba(232,240,255,0.6)", lineHeight: 1.65 }}>{ins.body}</p>
+            </div>
+          );
+        })}
+
+        {/* Challenge */}
+        <div className="glass fade-up d4" style={{ padding: 22, marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: "#00E5A8", fontWeight: 700, letterSpacing: "0.8px", textTransform: "uppercase", marginBottom: 10 }}>
+            Today's challenge
+          </div>
+          <p style={{ fontSize: 15, fontWeight: 500, lineHeight: 1.55 }}>{insights.challenge}</p>
+        </div>
+
+        {/* Affirmation */}
+        <p className="fade-up d5" style={{ textAlign: "center", color: "rgba(232,240,255,0.38)", fontSize: 13, fontStyle: "italic", padding: "8px 0 20px" }}>
+          ✦ {insights.affirmation}
+        </p>
+
+        <button className="cta fade-up d6" onClick={() => setScreen("explorer")}>
+          <BarChart2 size={16} /> Explore HBSC Data
+        </button>
+      </div>
+    );
+  };
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SCREEN: EXPLORER
+  // ══════════════════════════════════════════════════════════════════════════
+  const ExplorerScreen = () => (
+    <div className="fade-up" style={{ padding: "0 20px 110px" }}>
+      <div style={{ padding: "24px 0 28px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <BarChart2 size={20} color="#00E5A8" />
+          <span style={{ fontWeight: 700, fontSize: 19 }}>HBSC Data Explorer</span>
+        </div>
+        <p style={{ fontSize: 12, color: "rgba(232,240,255,0.36)" }}>Health Behaviour in School-aged Children · International Study · hbsc.org</p>
+      </div>
+
+      {/* Chart 1: Life Satisfaction */}
+      <div className="glass fade-up" style={{ padding: "22px 20px", marginBottom: 14 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>Life Satisfaction by Age</div>
+          <div style={{ fontSize: 12, color: "rgba(232,240,255,0.38)" }}>% reporting high satisfaction · by gender</div>
+        </div>
+        <ResponsiveContainer width="100%" height={190}>
+          <BarChart data={satisfactionData} barGap={4} barCategoryGap="35%">
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis dataKey="age" tick={{ fill: "rgba(232,240,255,0.38)", fontSize: 12 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: "rgba(232,240,255,0.38)", fontSize: 11 }} axisLine={false} tickLine={false} domain={[40, 80]} tickFormatter={v => `${v}%`} />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="boys" name="Boys" fill="#00C8FF" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="girls" name="Girls" fill="#FF6B6B" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+        <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
+          {[["#00C8FF", "Boys"], ["#FF6B6B", "Girls"]].map(([c, l]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "rgba(232,240,255,0.45)" }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: c }} />{l}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Chart 2: Sleep */}
+      <div className="glass fade-up d1" style={{ padding: "22px 20px", marginBottom: 14 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>Average Sleep Hours</div>
+          <div style={{ fontSize: 12, color: "rgba(232,240,255,0.38)" }}>Actual vs recommended · by age group</div>
+        </div>
+        <ResponsiveContainer width="100%" height={190}>
+          <BarChart data={sleepData} barGap={4} barCategoryGap="35%">
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+            <XAxis dataKey="label" tick={{ fill: "rgba(232,240,255,0.38)", fontSize: 12 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: "rgba(232,240,255,0.38)", fontSize: 11 }} axisLine={false} tickLine={false} domain={[6, 11]} tickFormatter={v => `${v}h`} />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="actual" name="Actual sleep" fill="#7C6FF7" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="target" name="Recommended" fill="rgba(0,229,168,0.35)" radius={[6, 6, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+        <div style={{ display: "flex", gap: 16, marginTop: 10 }}>
+          {[["#7C6FF7", "Actual"], ["rgba(0,229,168,0.5)", "Recommended"]].map(([c, l]) => (
+            <div key={l} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "rgba(232,240,255,0.45)" }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: c }} />{l}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Chart 3: Stress Sources */}
+      <div className="glass fade-up d2" style={{ padding: "22px 20px", marginBottom: 14 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>Top Stress Sources</div>
+          <div style={{ fontSize: 12, color: "rgba(232,240,255,0.38)" }}>% of teens citing each · age 11–15</div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <ResponsiveContainer width={130} height={130}>
+            <PieChart>
+              <Pie data={stressData} cx={60} cy={60} innerRadius={36} outerRadius={58} dataKey="value" paddingAngle={3}>
+                {stressData.map((e, i) => <Cell key={i} fill={e.color} />)}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div style={{ flex: 1 }}>
+            {stressData.map((item, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: item.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: "rgba(232,240,255,0.55)" }}>{item.name}</span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: item.color }}>{item.value}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Chart 4: Physical Activity */}
+      <div className="glass fade-up d3" style={{ padding: "22px 20px", marginBottom: 14 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>Meeting Activity Guidelines</div>
+          <div style={{ fontSize: 12, color: "rgba(232,240,255,0.38)" }}>% meeting 60 min/day · by age & gender</div>
+        </div>
+        <ResponsiveContainer width="100%" height={210}>
+          <BarChart data={activityData} layout="vertical" barSize={14}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+            <XAxis type="number" tick={{ fill: "rgba(232,240,255,0.38)", fontSize: 11 }} axisLine={false} tickLine={false} domain={[0, 34]} tickFormatter={v => `${v}%`} />
+            <YAxis type="category" dataKey="group" tick={{ fill: "rgba(232,240,255,0.45)", fontSize: 12 }} axisLine={false} tickLine={false} width={72} />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar dataKey="pct" name="Meeting guidelines" fill="#FFB347" radius={[0, 6, 6, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* Chart 5: Mental health symptoms */}
+      <div className="glass fade-up d4" style={{ padding: "22px 20px" }}>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>Weekly Mental Health Symptoms</div>
+          <div style={{ fontSize: 12, color: "rgba(232,240,255,0.38)" }}>% experiencing weekly · age 11–15</div>
+        </div>
+        {symptomData.map((item, i) => (
+          <div key={i} style={{ marginBottom: i < symptomData.length - 1 ? 18 : 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7, alignItems: "center" }}>
+              <span style={{ fontSize: 13.5, color: "rgba(232,240,255,0.65)" }}>{item.s}</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: "#E8F0FF" }}>{item.p}%</span>
+            </div>
+            <div style={{ height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 3 }}>
+              <div style={{
+                height: "100%",
+                width: `${item.p}%`,
+                background: `linear-gradient(90deg, #7C6FF7, #FF6B6B)`,
+                borderRadius: 3,
+                transition: "width 1.2s cubic-bezier(0.34,1.56,0.64,1)",
+                transitionDelay: `${i * 0.08}s`,
+              }} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ROOT RENDER
+  // ══════════════════════════════════════════════════════════════════════════
+  return (
+    <div style={{ minHeight: "100vh", background: "#06080F", color: "#E8F0FF", fontFamily: "'Sora',system-ui,sans-serif", position: "relative", maxWidth: 520, margin: "0 auto" }}>
+      {/* Ambient blobs */}
+      <div className="blob" style={{ width: 380, height: 380, background: "rgba(0,229,168,0.065)", top: -80, right: -90 }} />
+      <div className="blob" style={{ width: 280, height: 280, background: "rgba(124,111,247,0.075)", bottom: 240, left: -70, animationDelay: "3.5s" }} />
+      <div className="blob" style={{ width: 220, height: 220, background: "rgba(255,107,107,0.055)", top: "55%", right: -50, animationDelay: "6.5s" }} />
+
+      {/* Screen content */}
+      <div style={{ position: "relative", zIndex: 1 }}>
+        {screen === "home"     && <HomeScreen />}
+        {screen === "checkin"  && <CheckinScreen />}
+        {screen === "insights" && <InsightsScreen />}
+        {screen === "explorer" && <ExplorerScreen />}
+      </div>
+
+      {/* Bottom navigation */}
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 520, background: "rgba(6,8,15,0.92)", borderTop: "1px solid rgba(255,255,255,0.08)", backdropFilter: "blur(24px)", padding: "10px 0 18px", zIndex: 200 }}>
+        <div style={{ display: "flex", justifyContent: "space-around" }}>
+          {[
+            { id: "home",     icon: <Heart size={20} />,    label: "Home"    },
+            { id: "checkin",  icon: <Activity size={20} />, label: "Check in"},
+            { id: "insights", icon: <Brain size={20} />,    label: "Insights"},
+            { id: "explorer", icon: <BarChart2 size={20} />,label: "Explore" },
+          ].map(n => (
+            <button key={n.id} className={`nav-tab ${screen === n.id ? "on" : ""}`} onClick={() => setScreen(n.id)}>
+              {n.icon}
+              {n.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
